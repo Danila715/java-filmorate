@@ -1,22 +1,23 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/films")
 @Slf4j
 public class FilmController {
 
-    private final Map<Integer, Film> films = new HashMap<>();
+    private final Map<Integer, Film> films = new ConcurrentHashMap<>();
     private int nextId = 1;
 
     @GetMapping
@@ -36,18 +37,23 @@ public class FilmController {
 
     @PutMapping
     public Film updateFilm(@RequestBody Film film) {
-        if (film.getId() == 0 || !films.containsKey(film.getId())) {
+        if (!exists(film.getId())) {
             log.warn("Попытка обновить несуществующий фильм с ID: {}", film.getId());
             throw new ValidationException("Фильм с id = " + film.getId() + " не найден");
         }
+
         validateFilm(film);
         films.put(film.getId(), film);
         log.info("Фильм обновлён: {} (ID: {})", film.getName(), film.getId());
         return film;
     }
 
+    private boolean exists(int id) {
+        return id != 0 && films.containsKey(id);
+    }
+
     private void validateFilm(Film film) {
-        if (film.getName() == null || film.getName().isBlank()) {
+        if (!StringUtils.hasText(film.getName())) {
             log.warn("Ошибка валидации: название фильма пустое");
             throw new ValidationException("Название фильма не может быть пустым");
         }
