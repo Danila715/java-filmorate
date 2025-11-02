@@ -1,17 +1,31 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class FilmControllerTest {
 
-    private final FilmController controller = new FilmController();
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    private String getUrl() {
+        return "http://localhost:" + port + "/films";
+    }
 
     @Test
     void shouldNotAllowEmptyName() {
@@ -21,7 +35,8 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(120);
 
-        assertThrows(ValidationException.class, () -> controller.createFilm(film));
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), film, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -32,7 +47,8 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(120);
 
-        assertThrows(ValidationException.class, () -> controller.createFilm(film));
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), film, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -43,7 +59,8 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(1895, 12, 27));
         film.setDuration(120);
 
-        assertThrows(ValidationException.class, () -> controller.createFilm(film));
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), film, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -54,7 +71,8 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(0);
 
-        assertThrows(ValidationException.class, () -> controller.createFilm(film));
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), film, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -65,7 +83,9 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(120);
 
-        Film saved = controller.createFilm(film);
-        assertEquals(1, saved.getId());
+        ResponseEntity<Film> response = restTemplate.postForEntity(getUrl(), film, Film.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().getId() > 0);
+        assertEquals("Valid Film", response.getBody().getName());
     }
 }
