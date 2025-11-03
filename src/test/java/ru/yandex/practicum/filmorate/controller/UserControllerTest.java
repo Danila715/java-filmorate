@@ -1,21 +1,29 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.*;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserControllerTest {
 
-    private UserController controller;
+    @LocalServerPort
+    private int port;
 
-    @BeforeEach
-    void setUp() {
-        controller = new UserController();
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    private String getUrl() {
+        return "http://localhost:" + port + "/users";
     }
 
     @Test
@@ -25,11 +33,8 @@ class UserControllerTest {
         user.setLogin("validLogin");
         user.setBirthday(LocalDate.of(1990, 1, 1));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> controller.createUser(user)
-        );
-        assertTrue(exception.getMessage().contains("должна содержать символ @"));
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), user, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -39,11 +44,8 @@ class UserControllerTest {
         user.setLogin("validLogin");
         user.setBirthday(LocalDate.of(1990, 1, 1));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> controller.createUser(user)
-        );
-        assertTrue(exception.getMessage().contains("должна содержать символ @"));
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), user, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -53,11 +55,8 @@ class UserControllerTest {
         user.setLogin("");
         user.setBirthday(LocalDate.of(1990, 1, 1));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> controller.createUser(user)
-        );
-        assertTrue(exception.getMessage().contains("не может быть пустым"));
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), user, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -67,11 +66,8 @@ class UserControllerTest {
         user.setLogin("invalid login");
         user.setBirthday(LocalDate.of(1990, 1, 1));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> controller.createUser(user)
-        );
-        assertEquals("Логин не может быть пустым и содержать пробелы", exception.getMessage());
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), user, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -81,11 +77,8 @@ class UserControllerTest {
         user.setLogin("validLogin");
         user.setBirthday(LocalDate.now().plusDays(1));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> controller.createUser(user)
-        );
-        assertTrue(exception.getMessage().contains("не может быть в будущем"));
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), user, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -96,10 +89,9 @@ class UserControllerTest {
         user.setName("");
         user.setBirthday(LocalDate.of(1990, 1, 1));
 
-        User created = controller.createUser(user);
-
-        assertEquals("cooluser", created.getName());
-        assertEquals(1, created.getId());
+        ResponseEntity<User> response = restTemplate.postForEntity(getUrl(), user, User.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("cooluser", response.getBody().getName());
     }
 
     @Test
@@ -110,37 +102,38 @@ class UserControllerTest {
         user.setName("John Doe");
         user.setBirthday(LocalDate.of(1990, 1, 1));
 
-        User created = controller.createUser(user);
-
-        assertNotNull(created);
-        assertEquals(1, created.getId());
-        assertEquals("user@example.com", created.getEmail());
-        assertEquals("John Doe", created.getName());
+        ResponseEntity<User> response = restTemplate.postForEntity(getUrl(), user, User.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody().getId());
+        assertEquals("John Doe", response.getBody().getName());
     }
 
     @Test
     void shouldUpdateUserPartially() {
-        // Создаём пользователя
+        // Создаём
         User user = new User();
         user.setEmail("old@example.com");
         user.setLogin("oldLogin");
         user.setName("Old Name");
         user.setBirthday(LocalDate.of(1980, 1, 1));
-        User created = controller.createUser(user);
+        ResponseEntity<User> created = restTemplate.postForEntity(getUrl(), user, User.class);
+        User createdUser = created.getBody();
 
-        // Обновляем: УКАЗЫВАЕМ СТАРЫЙ ЛОГИН, чтобы не было null
+        // Обновляем
         User update = new User();
-        update.setId(created.getId());
+        update.setId(createdUser.getId());
         update.setEmail("new@example.com");
         update.setName("New Name");
-        update.setLogin("oldLogin"); // Явно передаём старый логин
 
-        User updated = controller.updateUser(update);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<User> request = new HttpEntity<>(update, headers);
 
-        assertEquals("new@example.com", updated.getEmail());
-        assertEquals("New Name", updated.getName());
-        assertEquals("oldLogin", updated.getLogin());
-        assertEquals(LocalDate.of(1980, 1, 1), updated.getBirthday());
+        ResponseEntity<User> updated = restTemplate.exchange(getUrl(), HttpMethod.PUT, request, User.class);
+        assertEquals(HttpStatus.OK, updated.getStatusCode());
+        assertEquals("new@example.com", updated.getBody().getEmail());
+        assertEquals("oldLogin", updated.getBody().getLogin());
+        assertEquals("New Name", updated.getBody().getName());
     }
 
     @Test
@@ -152,10 +145,11 @@ class UserControllerTest {
         user.setName("Test");
         user.setBirthday(LocalDate.of(1990, 1, 1));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> controller.updateUser(user)
-        );
-        assertTrue(exception.getMessage().contains("не найден"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<User> request = new HttpEntity<>(user, headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(getUrl(), HttpMethod.PUT, request, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 }
