@@ -1,24 +1,25 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
+@Slf4j
 public class InMemoryUserStorage implements UserStorage {
 
-    private final Map<Integer, User> users = new ConcurrentHashMap<>();
-    private int nextId = 1;
+    private final Map<Integer, User> users = new HashMap<>();
+    private int idGenerator = 1;
 
     @Override
     public User add(User user) {
-        user.setId(nextId++);
+        user.setId(idGenerator++);
         users.put(user.getId(), user);
+        log.debug("Пользователь добавлен: {} (ID: {})", user.getLogin(), user.getId());
         return user;
     }
 
@@ -28,6 +29,7 @@ public class InMemoryUserStorage implements UserStorage {
             throw new NotFoundException("Пользователь с id = " + user.getId() + " не найден");
         }
         users.put(user.getId(), user);
+        log.debug("Пользователь обновлён: {} (ID: {})", user.getLogin(), user.getId());
         return user;
     }
 
@@ -37,15 +39,24 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
-    public User getById(int id) {
-        if (!users.containsKey(id)) {
-            throw new NotFoundException("Пользователь с id = " + id + " не найден");
-        }
-        return users.get(id);
+    public Optional<User> findById(int id) {
+        return Optional.ofNullable(users.get(id));
     }
 
     @Override
-    public boolean contains(int id) {
-        return users.containsKey(id);
+    public List<User> getCommonFriends(int userId, int otherId) {
+        User user = findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден"));
+        User other = findById(otherId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + otherId + " не найден"));
+
+        Set<Integer> common = new HashSet<>(user.getFriends());
+        common.retainAll(other.getFriends());
+
+        return common.stream()
+                .map(this::findById)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 }

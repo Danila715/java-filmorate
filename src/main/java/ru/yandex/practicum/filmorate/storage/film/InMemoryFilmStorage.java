@@ -1,24 +1,25 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
+@Slf4j
 public class InMemoryFilmStorage implements FilmStorage {
 
-    private final Map<Integer, Film> films = new ConcurrentHashMap<>();
-    private int nextId = 1;
+    private final Map<Integer, Film> films = new HashMap<>();
+    private int idGenerator = 1;
 
     @Override
     public Film add(Film film) {
-        film.setId(nextId++);
+        film.setId(idGenerator++);
         films.put(film.getId(), film);
+        log.debug("Фильм добавлен: {} (ID: {})", film.getName(), film.getId());
         return film;
     }
 
@@ -28,6 +29,7 @@ public class InMemoryFilmStorage implements FilmStorage {
             throw new NotFoundException("Фильм с id = " + film.getId() + " не найден");
         }
         films.put(film.getId(), film);
+        log.debug("Фильм обновлён: {} (ID: {})", film.getName(), film.getId());
         return film;
     }
 
@@ -37,15 +39,15 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public Film getById(int id) {
-        if (!films.containsKey(id)) {
-            throw new NotFoundException("Фильм с id = " + id + " не найден");
-        }
-        return films.get(id);
+    public Optional<Film> findById(int id) {
+        return Optional.ofNullable(films.get(id));
     }
 
     @Override
-    public boolean contains(int id) {
-        return films.containsKey(id);
+    public List<Film> getPopular(int count) {
+        return films.values().stream()
+                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
+                .limit(count)
+                .collect(Collectors.toList());
     }
 }
