@@ -1,23 +1,28 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class UserService {
 
     private final UserStorage userStorage;
+    private final UserDbStorage userDbStorage;
+
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage,
+                       UserDbStorage userDbStorage) {
+        this.userStorage = userStorage;
+        this.userDbStorage = userDbStorage;
+    }
 
     public User add(User user) {
         if (user.getLogin() == null || user.getLogin().isBlank()) {
@@ -61,43 +66,36 @@ public class UserService {
     }
 
     public void addFriend(int userId, int friendId) {
-        User user = getById(userId);
-        User friend = getById(friendId);
+        // Проверяем существование пользователей
+        getById(userId);
+        getById(friendId);
 
-        // Проверяем, есть ли уже запрос от friend к user
-        FriendshipStatus friendStatus = friend.getFriends().get(userId);
-
-        if (friendStatus == FriendshipStatus.UNCONFIRMED) {
-            // Если friend уже отправил запрос, подтверждаем дружбу с обеих сторон
-            user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
-            friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
-            log.debug("Дружба подтверждена: {} ↔ {}", userId, friendId);
-        } else {
-            // Иначе создаём неподтверждённый запрос
-            user.getFriends().put(friendId, FriendshipStatus.UNCONFIRMED);
-            friend.getFriends().put(userId, FriendshipStatus.UNCONFIRMED);
-            log.debug("Запрос на дружбу отправлен: {} → {}", userId, friendId);
-        }
+        // Добавляем одностороннюю дружбу (согласно новым требованиям)
+        userDbStorage.addFriend(userId, friendId);
+        log.debug("Дружба добавлена: {} → {}", userId, friendId);
     }
 
     public void removeFriend(int userId, int friendId) {
-        User user = getById(userId);
-        User friend = getById(friendId);
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
-        log.debug("Дружба удалена: {} ↔ {}", userId, friendId);
+        // Проверяем существование пользователей
+        getById(userId);
+        getById(friendId);
+
+        userDbStorage.removeFriend(userId, friendId);
+        log.debug("Дружба удалена: {} → {}", userId, friendId);
     }
 
     public List<User> getFriends(int userId) {
-        User user = getById(userId);
-        return user.getFriends().keySet().stream()
-                .map(userStorage::findById)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .toList();
+        // Проверяем существование пользователя
+        getById(userId);
+
+        return userDbStorage.getFriends(userId);
     }
 
     public List<User> getCommonFriends(int userId, int otherId) {
+        // Проверяем существование пользователей
+        getById(userId);
+        getById(otherId);
+
         return userStorage.getCommonFriends(userId, otherId);
     }
 }
