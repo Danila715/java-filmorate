@@ -8,6 +8,7 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Data
@@ -27,4 +28,10 @@ public class Film {
     private int duration;
 
     private final Set<Integer> likes = new HashSet<>();
+
+    // Новые поля
+    private final Set<Genre> genres = new LinkedHashSet<>(); // LinkedHashSet для сохранения порядка
+
+    @NotNull(message = "Рейтинг MPA не может быть null")
+    private Mpa mpa;
 }

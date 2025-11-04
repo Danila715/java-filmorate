@@ -8,6 +8,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.time.LocalDate;
 
@@ -82,6 +83,11 @@ class FilmControllerTest {
         film.setDescription("Good movie");
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(120);
+
+        Mpa mpa = new Mpa();
+        mpa.setId(1);
+        mpa.setName("G");
+        film.setMpa(mpa);
 
         ResponseEntity<Film> response = restTemplate.postForEntity(getUrl(), film, Film.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());

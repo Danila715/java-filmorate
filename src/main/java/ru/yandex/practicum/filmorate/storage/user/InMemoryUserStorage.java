@@ -50,8 +50,9 @@ public class InMemoryUserStorage implements UserStorage {
         User other = findById(otherId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id = " + otherId + " не найден"));
 
-        Set<Integer> common = new HashSet<>(user.getFriends());
-        common.retainAll(other.getFriends());
+        // Получаем ID друзей из Map (используем keySet())
+        Set<Integer> common = new HashSet<>(user.getFriends().keySet());
+        common.retainAll(other.getFriends().keySet());
 
         return common.stream()
                 .map(this::findById)

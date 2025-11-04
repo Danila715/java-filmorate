@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -62,9 +63,21 @@ public class UserService {
     public void addFriend(int userId, int friendId) {
         User user = getById(userId);
         User friend = getById(friendId);
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
-        log.debug("Дружба: {} ↔ {}", userId, friendId);
+
+        // Проверяем, есть ли уже запрос от friend к user
+        FriendshipStatus friendStatus = friend.getFriends().get(userId);
+
+        if (friendStatus == FriendshipStatus.UNCONFIRMED) {
+            // Если friend уже отправил запрос, подтверждаем дружбу с обеих сторон
+            user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
+            friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
+            log.debug("Дружба подтверждена: {} ↔ {}", userId, friendId);
+        } else {
+            // Иначе создаём неподтверждённый запрос
+            user.getFriends().put(friendId, FriendshipStatus.UNCONFIRMED);
+            friend.getFriends().put(userId, FriendshipStatus.UNCONFIRMED);
+            log.debug("Запрос на дружбу отправлен: {} → {}", userId, friendId);
+        }
     }
 
     public void removeFriend(int userId, int friendId) {
@@ -77,7 +90,7 @@ public class UserService {
 
     public List<User> getFriends(int userId) {
         User user = getById(userId);
-        return user.getFriends().stream()
+        return user.getFriends().keySet().stream()
                 .map(userStorage::findById)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
