@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -107,16 +108,16 @@ public class FilmDbStorage implements FilmStorage {
         return films;
     }
 
-    public void addLike(int filmId, int userId) {
+    public void addLike(Film film, User user) {
         String sql = "MERGE INTO film_likes (film_id, user_id) KEY (film_id, user_id) VALUES (?, ?)";
-        jdbcTemplate.update(sql, filmId, userId);
-        log.debug("Лайк добавлен в БД: фильм {}, пользователь {}", filmId, userId);
+        jdbcTemplate.update(sql, film.getId(), user.getId());
+        log.debug("Лайк добавлен в БД: фильм {}, пользователь {}", film.getId(), user.getId());
     }
 
-    public void removeLike(int filmId, int userId) {
+    public void removeLike(Film film, User user) {
         String sql = "DELETE FROM film_likes WHERE film_id = ? AND user_id = ?";
-        jdbcTemplate.update(sql, filmId, userId);
-        log.debug("Лайк удалён из БД: фильм {}, пользователь {}", filmId, userId);
+        jdbcTemplate.update(sql, film.getId(), user.getId());
+        log.debug("Лайк удалён из БД: фильм {}, пользователь {}", film.getId(), user.getId());
     }
 
     private void saveGenres(int filmId, Set<Genre> genres) {

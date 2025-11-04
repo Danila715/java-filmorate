@@ -73,7 +73,7 @@ public class FilmService {
         User user = userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден"));
 
-        filmDbStorage.addLike(film.getId(), user.getId());
+        filmDbStorage.addLike(film, user);
         log.debug("Лайк добавлен: {} → {}", user.getLogin(), film.getName());
     }
 
@@ -82,7 +82,7 @@ public class FilmService {
         User user = userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден"));
 
-        filmDbStorage.removeLike(film.getId(), user.getId());
+        filmDbStorage.removeLike(film, user);
         log.debug("Лайк удалён: {} → {}", user.getLogin(), film.getName());
     }
 

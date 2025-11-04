@@ -170,29 +170,14 @@ class FilmDbStorageTest {
 
     @Test
     void testAddLike() {
-        // Создаем фильм
-        Film film = new Film();
-        film.setName("Like Film");
-        film.setDescription("Like Description");
-        film.setReleaseDate(LocalDate.of(2000, 1, 1));
-        film.setDuration(120);
-        Mpa mpa = new Mpa();
-        mpa.setId(1);
-        film.setMpa(mpa);
-
-        // Создаем пользователя
-        User user = new User();
-        user.setEmail("like@example.com");
-        user.setLogin("likeuser");
-        user.setName("Like User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
+        Film film = createFilm("Like Film", 120, 1);
+        User user = createUser("like@example.com", "likeuser");
 
         Film savedFilm = filmStorage.add(film);
         User savedUser = userStorage.add(user);
 
-        filmStorage.addLike(savedFilm.getId(), savedUser.getId());
+        filmStorage.addLike(savedFilm, savedUser);  // ← объекты
 
-        // Проверяем через getPopular
         List<Film> popular = filmStorage.getPopular(10);
         assertThat(popular).isNotEmpty();
         assertThat(popular.get(0).getId()).isEqualTo(savedFilm.getId());
@@ -200,37 +185,18 @@ class FilmDbStorageTest {
 
     @Test
     void testRemoveLike() {
-        // Создаем фильм
-        Film film = new Film();
-        film.setName("Remove Like Film");
-        film.setDescription("Remove Like Description");
-        film.setReleaseDate(LocalDate.of(2000, 1, 1));
-        film.setDuration(120);
-        Mpa mpa = new Mpa();
-        mpa.setId(1);
-        film.setMpa(mpa);
-
-        // Создаем пользователя
-        User user = new User();
-        user.setEmail("removelike@example.com");
-        user.setLogin("removelikeuser");
-        user.setName("Remove Like User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
+        Film film = createFilm("Remove Like Film", 120, 1);
+        User user = createUser("removelike@example.com", "removelikeuser");
 
         Film savedFilm = filmStorage.add(film);
         User savedUser = userStorage.add(user);
 
-        // Добавляем и удаляем лайк
-        filmStorage.addLike(savedFilm.getId(), savedUser.getId());
-        filmStorage.removeLike(savedFilm.getId(), savedUser.getId());
+        filmStorage.addLike(savedFilm, savedUser);     // ← объекты
+        filmStorage.removeLike(savedFilm, savedUser);  // ← объекты
 
-        // Проверяем что лайков нет - фильм должен быть последним или отсутствовать
         List<Film> popular = filmStorage.getPopular(10);
 
-        // Если список пустой - отлично, лайков нет
-        // Если не пустой - проверяем что у первого фильма ID не равен нашему
         if (!popular.isEmpty()) {
-            // У фильма без лайков не должно быть приоритета
             long likesCount = popular.stream()
                     .filter(f -> f.getId() == savedFilm.getId())
                     .count();
@@ -240,43 +206,40 @@ class FilmDbStorageTest {
 
     @Test
     void testGetPopular() {
-        // Создаем фильмы
-        Film film1 = new Film();
-        film1.setName("Popular Film 1");
-        film1.setDescription("Description 1");
-        film1.setReleaseDate(LocalDate.of(2000, 1, 1));
-        film1.setDuration(120);
-        Mpa mpa1 = new Mpa();
-        mpa1.setId(1);
-        film1.setMpa(mpa1);
-
-        Film film2 = new Film();
-        film2.setName("Popular Film 2");
-        film2.setDescription("Description 2");
-        film2.setReleaseDate(LocalDate.of(2001, 2, 2));
-        film2.setDuration(90);
-        Mpa mpa2 = new Mpa();
-        mpa2.setId(2);
-        film2.setMpa(mpa2);
-
-        // Создаем пользователя
-        User user = new User();
-        user.setEmail("popular@example.com");
-        user.setLogin("popularuser");
-        user.setName("Popular User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
+        Film film1 = createFilm("Popular Film 1", 120, 1);
+        Film film2 = createFilm("Popular Film 2", 90, 2);
+        User user = createUser("popular@example.com", "popularuser");
 
         Film savedFilm1 = filmStorage.add(film1);
         Film savedFilm2 = filmStorage.add(film2);
         User savedUser = userStorage.add(user);
 
-        // Добавляем лайк только первому фильму
-        filmStorage.addLike(savedFilm1.getId(), savedUser.getId());
+        filmStorage.addLike(savedFilm1, savedUser);  // ← объекты
 
         List<Film> popular = filmStorage.getPopular(2);
 
         assertThat(popular).isNotEmpty();
-        // Первый фильм должен быть первым (у него есть лайк)
         assertThat(popular.get(0).getId()).isEqualTo(savedFilm1.getId());
+    }
+
+    private Film createFilm(String name, int duration, int mpaId) {
+        Film film = new Film();
+        film.setName(name);
+        film.setDescription("Description");
+        film.setReleaseDate(LocalDate.of(2000, 1, 1));
+        film.setDuration(duration);
+        Mpa mpa = new Mpa();
+        mpa.setId(mpaId);
+        film.setMpa(mpa);
+        return film;
+    }
+
+    private User createUser(String email, String login) {
+        User user = new User();
+        user.setEmail(email);
+        user.setLogin(login);
+        user.setName("Name");
+        user.setBirthday(LocalDate.of(1990, 1, 1));
+        return user;
     }
 }
