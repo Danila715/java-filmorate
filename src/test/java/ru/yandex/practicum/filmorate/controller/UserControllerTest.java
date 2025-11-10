@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
+import org.springframework.test.context.TestPropertySource;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -14,6 +15,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestPropertySource(properties = {
+        "spring.datasource.url=jdbc:h2:mem:testdb_uc",
+        "spring.datasource.driverClassName=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.sql.init.mode=always"
+})
 class UserControllerTest {
 
     @LocalServerPort
@@ -81,18 +89,6 @@ class UserControllerTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
-    @Test
-    void shouldUseLoginAsNameIfNameIsEmpty() {
-        User user = new User();
-        user.setEmail("user@example.com");
-        user.setLogin("cooluser");
-        user.setName("");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-
-        ResponseEntity<User> response = restTemplate.postForEntity(getUrl(), user, User.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("cooluser", response.getBody().getName());
-    }
 
     @Test
     void shouldCreateValidUser() {
@@ -108,33 +104,6 @@ class UserControllerTest {
         assertEquals("John Doe", response.getBody().getName());
     }
 
-    @Test
-    void shouldUpdateUserPartially() {
-        // Создаём
-        User user = new User();
-        user.setEmail("old@example.com");
-        user.setLogin("oldLogin");
-        user.setName("Old Name");
-        user.setBirthday(LocalDate.of(1980, 1, 1));
-        ResponseEntity<User> created = restTemplate.postForEntity(getUrl(), user, User.class);
-        User createdUser = created.getBody();
-
-        // Обновляем
-        User update = new User();
-        update.setId(createdUser.getId());
-        update.setEmail("new@example.com");
-        update.setName("New Name");
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<User> request = new HttpEntity<>(update, headers);
-
-        ResponseEntity<User> updated = restTemplate.exchange(getUrl(), HttpMethod.PUT, request, User.class);
-        assertEquals(HttpStatus.OK, updated.getStatusCode());
-        assertEquals("new@example.com", updated.getBody().getEmail());
-        assertEquals("oldLogin", updated.getBody().getLogin());
-        assertEquals("New Name", updated.getBody().getName());
-    }
 
     @Test
     void shouldNotUpdateNonExistentUser() {

@@ -7,10 +7,6 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 @Data
 public class User {
@@ -20,6 +16,7 @@ public class User {
     @Email(message = "Электронная почта должна содержать символ @")
     private String email;
 
+    @NotBlank(message = "Логин не может быть пустым")
     @Pattern(regexp = "^\\S+$", message = "Логин не может содержать пробелы")
     private String login;
 
@@ -27,7 +24,4 @@ public class User {
 
     @PastOrPresent(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
-
-    // Изменено: теперь храним Map<userId, FriendshipStatus>
-    private final Map<Integer, FriendshipStatus> friends = new HashMap<>();
 }

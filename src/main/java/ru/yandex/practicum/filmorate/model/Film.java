@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -27,11 +26,10 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительной")
     private int duration;
 
-    private final Set<Integer> likes = new HashSet<>();
+    // Жанры фильма
+    private final Set<Genre> genres = new LinkedHashSet<>();
 
-    // Новые поля
-    private final Set<Genre> genres = new LinkedHashSet<>(); // LinkedHashSet для сохранения порядка
-
+    // Рейтинг MPA
     @NotNull(message = "Рейтинг MPA не может быть null")
     private Mpa mpa;
 }

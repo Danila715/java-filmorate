@@ -44,6 +44,6 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleAny(Exception e) {
         log.error("Непредвиденная ошибка", e);
-        return new ErrorResponse("Произошла непредвиденная ошибка.");
+        return new ErrorResponse("Произошла непредвиденная ошибка: " + e.getMessage());
     }
 }
